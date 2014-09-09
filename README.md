@@ -10,7 +10,7 @@ La difficulte repose sur le fait que l'on ne dispose que des messages cryptes.
 Architecture du projet
 ----------------------
 
-Arboressence et role des differents dossiers qui composent le projet :
+Arborescence et role des differents dossiers qui composent le projet :
 
 generator/
 	Contient un outil qui permet de crypter une citation a l'aide d'une cle generee aleatoirement.
