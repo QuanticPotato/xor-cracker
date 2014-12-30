@@ -1,6 +1,8 @@
 CC=gcc
 LD=gcc
 
+CFLAGS= -g 
+
 EXE=generator
 OBJS = $(patsubst %.c,%.o,$(wildcard *.c))
 
@@ -10,7 +12,7 @@ $(EXE) : $(OBJS)
 	$(LD) -o $@ $<
 
 %.o : %.c
-	$(CC) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -rf *.o $(EXE)

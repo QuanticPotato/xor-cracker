@@ -19,7 +19,7 @@ int genKey(int length);
 int main(int argc, char **argv)
 {
 	FILE **inputFiles = NULL;
-	int i, numInputs = 0, inputProcessed = 0;
+	int i, j, numInputs = 0, inputProcessed = 0;
 	char **inputs = NULL, *tmpBuffer = NULL;
 	size_t bufferLength;
 	ssize_t *inputsLength;
@@ -66,6 +66,7 @@ int main(int argc, char **argv)
 	for(i = 1 ; i < argc ; i++) {
 		if(inputFiles[i - 1] == NULL)
 			continue;
+		fseek(inputFiles[i - 1], 0, SEEK_SET);
 		while((inputProcessed < numInputs) && (inputsLength[inputProcessed] = getline(&inputs[inputProcessed], &bufferLength, inputFiles[i - 1])) != -1) {
 			inputProcessed++;
 		}
@@ -73,14 +74,30 @@ int main(int argc, char **argv)
 
 
 	// And finaly apply XOR crypt ...
-	// TODO
+	// ... And display it in a python-like list
+	printf("messages = [");
+	for(i = 0 ; i < numInputs ; i++) {
+		printf("[");
+		for(j = 0 ; j < inputsLength[i] - 1 ; j++) {
+			printf("%d, ", (key[j % KEY_LENGTH] ^ inputs[i][j]));
+		}
+		printf("%d]", (key[j % KEY_LENGTH] ^ inputs[i][j + 1]));
+		if(i != numInputs - 1) printf(",\n");
+	}
+	printf("]\n\n");
 
+	// Output the key too in comment
+	printf("#key = [");
+	for(i = 0 ; i < KEY_LENGTH - 1 ; i++) 
+		printf("%d, ", key[i]);
+	printf("%d]\n\n", key[KEY_LENGTH - 1]);
+
+	// Clean up everything ..
 	closeFiles(inputFiles, argc - 1);
-	for(i = 1 ; i < numInputs ; i++)
+	for(i = 0 ; i < numInputs ; i++)
 		free(inputs[i]);
 	free(inputs);
 	free(inputsLength);
-
 	if(key != NULL) {
 		free(key);
 	}
