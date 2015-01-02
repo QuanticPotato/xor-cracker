@@ -2,7 +2,7 @@
 def isPrintable(character) :
 	if ((character >= 65 and character <= 90) 		# Upper case letter
 		or (character >= 97 and character <= 122)	# Lower case letter
-		or character == 44 or character == 46 		# Classical punctuation
+		or character == 44 or character == 46 or character == 39		# Classical punctuation
 		or character == 32) :				# space
 		return True
 	return False 
@@ -10,6 +10,7 @@ def isPrintable(character) :
 # First, parse the dictionary file !  print("Parse dictionary ...")
 dico = {} 
 fd = open("wordsEn.txt", "r")
+print("Parse dictionary ..")
 for line in fd:
 	cur = dico
 	for letter in line:
@@ -44,7 +45,7 @@ decrypt = []
 # First, only keep the key-bytes that produce printable characters ..
 # (Printable characters include letters (lower and upper case,
 # punctuation and spaces).
-for i in range(longestSize) :
+for i in xrange(longestSize) :
 	key.append([])
 	decrypt.append([])
 	for byte in xrange(255):
@@ -61,27 +62,35 @@ for i in range(longestSize) :
 			key[i].append(byte)
 			decrypt[i].append(decryptBytes)
 
-def makeWord(msgId, offset, currentWord, dicoPosition):
+
+# One list per message.
+# Each list contains a dictionary of possible sentences (associated
+# with the corresponding key used to find these sentences)
+words = []
+
+def makeWord(msgId, offset, currentWord, dicoPosition, wordLength):
 	global key
 	global decrypt
-	if(offset > 20):
+	global words
+	global dico
+	if(offset >= len(mes.messages[msgId])):
+		print(currentWord + " ..................")
 		return 0
 	for i in xrange(len(key[offset])) :
 		character = decrypt[offset][i][msgId]
 		if (character >= 65 and character <= 90) : # Change to lower case if needed		
 			character = character + 32
-		elif character in (32, 44, 46) : 	# Word separator
+		elif character in (32, 44, 46, 39) : 	# Word separator
 			character = 32			# Space
 		if character in dicoPosition :
 			if character == 32:
-				if(len(currentWord) >=4):
-					print(currentWord)
-				continue
-			makeWord(msgId, offset + 1, currentWord + chr(character), dicoPosition[character])
+				print(currentWord + str(msgId))
+				makeWord(msgId, offset + 1, currentWord + chr(decrypt[offset][i][msgId]), dico, 0)
+			else:
+				makeWord(msgId, offset + 1, currentWord + chr(character), dicoPosition[character], wordLength + 1)
+			
 
-
-words = []
 # Now, try to find the first word
 for k in xrange(len(mes.messages)) :
-	makeWord(k, 0, "", dico)
+	makeWord(k, 0, "", dico, 0)
 
