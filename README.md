@@ -16,13 +16,7 @@ generator/
 	Contient un outil qui permet de crypter une citation a l'aide d'une cle generee aleatoirement.
 	Le message crypte est ensuite transmit sous forme de fichier source, directement exploitable dans le reste du projet.
 
-c/
-	Contient la version C de xor-cracker
-
-python/
-	Contient la version python de xor-cracker
+./
+	Code source en python
 
 
-
-xor-cracker (English README)
-============================
