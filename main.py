@@ -1,3 +1,7 @@
+longestSize = 0
+longestIndex = 0
+wordMaxLength = 0
+
 # Check the ASCII code of the character
 def isPrintable(character) :
 	if ((character >= 65 and character <= 90) 		# Upper case letter
@@ -18,30 +22,49 @@ def tabMatch(tab, pattern, tabOffset, patternOffset, length):
 # This function returns the common value of this level (x) : [][x][index - length]
 # (If several are found, it returns the first one)
 def findIntersection(grid, index, length):
-	# We take the first message as a reference, but it could very well be another.
-	for patternRaw in grid[0]:
+	global longestIndex
+	global foundWords
+	# We take the longest message as a reference, but it could very well be another.
+	for patternRaw in grid[longestIndex]:
 		pattern = patternRaw[index:(index+length)]
+		print(longestIndex, "pattern : ", pattern, index, len(grid))
 		# We now check if this pattern is present in the other messages
 		presentInAll = True
-		for i in xrange(1, len(grid)):
+		for i in xrange(0, len(grid)):
+			print("Len : ", len(grid[i]))
+			if (i == longestIndex) :				# Don't process the reference
+				continue
+			if(len(grid[i][0]) <= index):			# We skip messages that have been completely uncrypted ..
+				print("SKIP ", i)
+				continue
 			patternMatches = 0 		# Number of time the pattern is present
+			#if len(grid[i]) == 1:		# If there is only one possibility remaining, we keep going on it
+			#	patternMatches = 1
 			for word in grid[i]:
 				present = tabMatch(word, pattern, index, 0, length)
 				if present: 
+					print(i, "IN ", len(word))
 					patternMatches += 1
+					break
+				else:
+					print(i, "not in ", len(word))
 			if (patternMatches == 0):	# It MUST be present in every messages
 				presentInAll = False
+				#print("BREAK")
 				break
 		if presentInAll:
 			return pattern
 	print("No common parts !") # At least in the first message ..
+	print(grid)
 	return []
 
-# First, parse the dictionary file !  print("Parse dictionary ...")
+# First, parse the dictionary file !  
 dico = {} 
 fd = open("wordsEn.txt", "r")
 print("Parse dictionary ..")
 for line in fd:
+	if(len(line) > wordMaxLength):
+		wordMaxLength = len(line)
 	cur = dico
 	for letter in line:
 		code = ord(letter) 	# Process faster with numbers
@@ -59,10 +82,16 @@ import messages as mes
 # The size of the bigger message
 # (Will be the length of the key we are looking for ..)
 longestSize = len(mes.messages[0])
-for e in mes.messages :
-	if len(e) > longestSize:
-		longestSize = len(e)
+for i in xrange(len(mes.messages)) :
+	if len(mes.messages[i]) > longestSize:
+		longestSize = len(mes.messages[i])
+		longestIndex = i
 
+def printMessage(msgId, key):
+	message = ""
+	for i in xrange(2, key[1] + 2):
+		message += chr(mes.messages[msgId][i - 2] ^ key[i])
+	print(message)
 
 # Every possible keys (It is a two-dimensions list)
 # As and when the execution of the program, strip this list to only 
@@ -91,6 +120,8 @@ for i in xrange(longestSize) :
 		if printable:
 			key[i].append(byte)
 			decrypt[i].append(decryptBytes)
+		
+print(key[8])
 
 
 # One list per message.
@@ -103,12 +134,18 @@ def makeWord(msgId, offset, currentWord, dicoPosition, wordLength):
 	global decrypt
 	global words
 	global dico
+	global wordMaxLength
 	if(offset >= len(mes.messages[msgId])):
-#		print(currentWord + " ..................")
+		if(msgId == 9): print("ENNNNNNND")
 		return -1
+	#if(wordLength > wordMaxLength + 2):
+	#	return -1
 	possibilities = []
 	for i in xrange(len(key[offset])) :
 		character = decrypt[offset][i][msgId]
+		if(msgId == 9): print("offset ", offset, chr(character))
+		if(msgId == 9 and character == 46):
+			print("YOUPI")
 		if (character >= 65 and character <= 90) : # Change to lower case if needed		
 			character = character + 32
 		elif character in (32, 44, 46, 39) : 	# Word separator
@@ -127,7 +164,7 @@ def extendWord(msgId, currentWord):
 	currentOffset = currentWord[0]
 	nextPossibilities = makeWord(msgId, currentOffset + 1, [], dico, 0)
 	if(nextPossibilities == -1):	# We reach the end of the message ..
-		print("ENNNNNNNNNNNNNNNND")
+		return -1
 	nextWords = []
 	for pos in nextPossibilities:
 		nextWord = [pos[0], currentLength + pos[1]] + currentWord[2:] + pos[2:]
@@ -143,24 +180,38 @@ for k in xrange(len(mes.messages)) :
 i = 0
 previous = (0, 0)
 foundKey = []
-while i < 30:
-	shortestWord = words[0][0][1] - i		# ! This value depend on the current offset !
+foundWords = [] 	# The words that we completely found
+while i < longestSize:
+	shortestWord = wordMaxLength + 10
 	for j in xrange(len(words)):		#len(words) is the number of messages
+		newWords = []
+		if j in foundWords:
+			newWords.append(words[j][0])	# Else, add the word to avoid out of range exception
+			continue
 		# First, make sure this word passed the previous loop (i.e. match the begining of the found key)
 		# Then, make sure we have enough characters ..
-		newWords = []
 		for word in words[j]:
 			if (tabMatch(word, foundKey, previous[0] + 2, previous[0], previous[1])):
 				if word[1] <= i:	# Remember, the second cell is the word length
-					newWords.extend(extendWord(j, word))
+					if(j == 9):
+						printMessage(j, word)
+					extension = extendWord(j, word)
+					if(extension != -1):		# If it is -1, the message has been completely found
+						if(j == 9):
+							print("extend", extension)
+						newWords.extend(extension)
+					else:
+						foundWords.append(j)
+						newWords.append(word)
 				else:
 					newWords.append(word)
 		words[j] = newWords
 		for word in words[j]:
-			if (word[1] - i < shortestWord): 
+			if (word[1] - i < shortestWord): 	# This value depend on the current offset (i) ! 
 				shortestWord = word[1] - i
 	foundKey.extend(findIntersection(words, i + 2, shortestWord))
 	previous = (i, shortestWord)
 	i += shortestWord
+	print(i)
 			
 print(foundKey)
